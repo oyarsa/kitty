@@ -35,6 +35,11 @@
 #include <float.h>
 #include <string.h>
 
+void NSPrint(NSString *str) {
+    [[NSString stringWithFormat:@"%@\n", str]
+     writeToFile: @"/dev/stdout"
+     atomically: NO];
+}
 
 static const char*
 polymorphic_string_as_utf8(id string) {
@@ -1036,9 +1041,12 @@ static const NSRange kEmptyRange = { NSNotFound, 0 };
         _glfwInputFramebufferSize(window, (int)fbRect.size.width, (int)fbRect.size.height);
     }
 
+    // Maybe
     const float xscale = fbRect.size.width / contentRect.size.width;
     const float yscale = fbRect.size.height / contentRect.size.height;
-
+    NSPrint([NSString
+            stringWithFormat: @"viewDidChangeBackingProperties %f %f",
+            xscale, yscale]);
     if (xscale != window->ns.xscale || yscale != window->ns.yscale)
     {
         window->ns.xscale = xscale;
@@ -1509,6 +1517,7 @@ void _glfwPlatformUpdateIMEState(_GLFWwindow *w, const GLFWIMEUpdateEvent *ev) {
     if (_glfw.callbacks.get_ime_cursor_position) {
         GLFWIMEUpdateEvent ev = { .type = GLFW_IME_UPDATE_CURSOR_POSITION };
         if (_glfw.callbacks.get_ime_cursor_position((GLFWwindow*)window, &ev)) {
+            // Probably not
             const CGFloat left = (CGFloat)ev.cursor.left / window->ns.xscale;
             const CGFloat top = (CGFloat)ev.cursor.top / window->ns.yscale;
             const CGFloat cellWidth = (CGFloat)ev.cursor.width / window->ns.xscale;
@@ -2020,8 +2029,12 @@ void _glfwPlatformSetWindowAspectRatio(_GLFWwindow* window, int numer, int denom
 void _glfwPlatformSetWindowSizeIncrements(_GLFWwindow* window, int widthincr, int heightincr)
 {
     if (widthincr != GLFW_DONT_CARE && heightincr != GLFW_DONT_CARE) {
+        // Maybe
         float xscale = 1, yscale = 1;
         _glfwPlatformGetWindowContentScale(window, &xscale, &yscale);
+        NSPrint([NSString
+                stringWithFormat: @"_glfwPlatformSetWindowSizeIncrements %f %f",
+                xscale, yscale]);
         [window->ns.object setResizeIncrements:NSMakeSize(widthincr / xscale, heightincr / yscale)];
     } else {
         [window->ns.object setResizeIncrements:NSMakeSize(1.0, 1.0)];
@@ -2061,8 +2074,12 @@ void _glfwPlatformGetWindowFrameSize(_GLFWwindow* window,
 void _glfwPlatformGetWindowContentScale(_GLFWwindow* window,
                                         float* xscale, float* yscale)
 {
+    // Maybe
     const NSRect points = get_window_size_without_border_in_logical_pixels(window);
     const NSRect pixels = [window->ns.view convertRectToBacking:points];
+    NSPrint([NSString
+            stringWithFormat: @"_glfwPlatformGetWindowContentScale %f %f",
+            *xscale, *yscale]);
 
     if (xscale)
         *xscale = (float) (pixels.size.width / points.size.width);
@@ -2845,9 +2862,14 @@ VkResult _glfwPlatformCreateWindowSurface(VkInstance instance,
         return VK_ERROR_EXTENSION_NOT_PRESENT;
     }
 
-    if (window->ns.retina)
+    // Maybe
+    if (window->ns.retina) {
         [window->ns.layer setContentsScale:[window->ns.object backingScaleFactor]];
 
+        NSPrint([NSString
+                stringWithFormat: @"_glfwPlatformCreateWindowSurface %f",
+                [window->ns.object backingScaleFactor]]);
+    }
     [window->ns.view setLayer:window->ns.layer];
     [window->ns.view setWantsLayer:YES];
 
